@@ -2,6 +2,9 @@ const express = require("express");
 const bcrypt = require("bcrypt");
 const db = require("../data/config");
 
+// custom middleware
+// const protected = require('../middleware/protected')
+
 const router = express.Router();
 
 const saltRounds = 12;
@@ -32,6 +35,7 @@ router.post("/login", async (req, res, next) => {
         const passwordCheck = await bcrypt.compare(password, user.password)
 
         if( user && passwordCheck ) {
+          console.log(req.session)
             res.status(200).json({
                 message: `Welcome ${user.username}`
             })
@@ -44,4 +48,22 @@ router.post("/login", async (req, res, next) => {
         next(error)
     }
 })
+
+router.get('/users', protected, async (req, res, next) => {
+  try {
+    console.log(req.session)
+    const users = await db('users').select("username")
+    res.status(200).json(users)
+  } catch (error) {
+    next(error)
+  }
+})
+
+function protected(req, res, next) {
+  if (!req.session && !req.session.userID) {
+    res.status(401).json({ message: 'you shall not pass!'})
+  } else {
+      next()
+  }
+}
 module.exports = router
